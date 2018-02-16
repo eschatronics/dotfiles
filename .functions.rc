@@ -1,0 +1,138 @@
+for rc in colors.rc; do
+  [ -f $rc ] && source ~/.${rc}
+done
+
+function killall2 () 
+{
+  killer="kill"
+  pgrep "^${1}$"  | tee >(cat <(echo -n "Killing ") -) \
+                  | xargs $killer && echo "Killed" 
+} 
+
+function xkcdpasswd ()
+{
+  sort --sort=random /usr/share/dict/words \
+          | head -n $1 \
+          | tr \\n - \
+          | sed s:-$:: && echo
+}
+
+function shred ()
+{
+  for f in $*; do
+    dd if=/dev/urandom of=$f count=$(wc -c $f | awk '{ print $1 }') bs=1
+  done
+}
+
+function shredR ()
+{
+  find $1 -type f \
+    | while read f; do
+       shred $f
+      done
+}
+
+function srm ()
+{
+  for item in $*; do
+    shred $item
+    rm -f $item
+  done
+}
+
+function srmR ()
+{
+  shredR $1
+  rm -rf $1
+}
+
+function swap ()
+{
+  t=`mktemp`
+  mv $1 $t && \
+  mv $2 $1 && \
+  mv $t $2 && \
+  echo "swapped $1 and $2"
+}
+
+function git_branch () {
+  grep -q "^//*$" <<< "$PWD" && echo "no branch" && return
+  if [ ! -d "./.git" ]; then
+    (cd .. && git_branch)
+  else
+    git branch 2> /dev/null | grep -Po '(?<=\* ).+' 
+  fi
+}
+
+mkdir -p /tmp/trash
+alias RM=$(which rm)
+function rm ()
+{
+  [ "x$1" = "x-rf" ] && shift
+  stamp=$(date +%F-%H-%M-%S)
+  d=/tmp/trash/${stamp}
+  mkdir -p $d
+  mv $@ $d/ && echo "Moved $* to $d" || echo "${RED}Failed to move $* to trash"
+}
+
+function getmac ()
+{
+  ifconfig $1 | pcregrep -o '(?<=lladdr )([0-9a-f][0-9a-f]:){5}[0-9a-f][0-9a-f]'
+}
+
+function changemac ()
+{
+  IF=$1
+  MAC=$2
+  b="${GREEN}[+]${DARKGREEN}"
+
+  if [ `getmac ${IF}` = ${MAC} ]; then
+    echo -e "${GREEN}MAC already set${RESET}"
+  else
+    echo -e "$b Taking down ${IF}..."
+    sudo ifconfig ${IF} down
+    echo -e "$b Changing mac address to ${MAC}" 
+    sudo ifconfig ${IF} lladdr ${MAC}
+    echo -e "$b Bringing ${IF} back up..."
+    sudo ifconfig ${IF} up
+    echo -e "$b Acquiring dhcp lease for ${IF}..."
+    sudo dhclient ${IF}
+  fi
+
+  echo "$b Testing..."
+  while : ; do
+    ping -c 1 google.com && break
+  done
+  echo -e "${GREEN}READY${RESET}"
+}
+
+
+function forecast ()
+{
+  curl wttr.in/halifax
+}
+
+function disasdiff ()
+{
+  filter="cut -d: -f2-" 
+  vimdiff <(objdump -D $1 | $filter ) <(objdump -D $2 | $filter )
+}
+
+function xxdiff ()
+{
+  filter="cut -d: -f2-" 
+  vimdiff <(xxd -g1 $1 | $filter) <(xxd -g1 $2)
+}
+
+function leet ()
+{
+  tr a-z A-Z | tr AELTSBGO 43175690
+}
+
+function :: ()
+{
+  echo Launching "$*" in background...
+  exe=$1
+  shift
+  nohup $exe "$*" &
+}

@@ -1,0 +1,67 @@
+
+function preexec () {
+  # Check for nix-shell invocation, and grab package list
+  if grep -q "nix-shell -p" <<< "$LAST_COMMAND"; then
+    export NIX_SHELL_PKGS=$( sed "s/nix-shell -p *//" <<< "$LAST_COMMAND" )
+  fi
+  L=40
+  if (( $(wc -c <<< $LAST_COMMAND) > $L )); then
+    export LAST_COMMAND=$(head -c $L <<< "$LAST_COMMAND" )
+  fi
+}
+
+function preexec_invoke_exec () {
+  [ -n "$COMP_LINE" ] && return # do nothing if completing
+  [ "$BASH_COMMAND" = "$PROMPT_COMMAND" ] && return 
+  export LAST_COMMAND=$(history 1 | sed "s/ *[0-9]* *//")
+  preexec "$LAST_COMMAND"
+}
+
+trap 'preexec_invoke_exec' DEBUG
+
+function makeprompt {
+    EXITSTATUS="$?"
+    JOBS="$(jobs | grep -v Exit | wc -l )"
+    TIME="$(date +%R)"
+#    NESSUS="$(nessus_ver_running)"
+    GIT="$(git_branch)" # set prompt
+    # define some colours
+
+
+#     DARKGREEN="\[\033[00;32m\]"
+#     GREEN="\[\033[01;32m\]"
+#     TEAL="\[\033[00;36m\]"
+#     DARKGREY="\[\033[01;30m\]"
+#     CYAN="\[\033[01;36m\]"
+#     LIGHTGREY="\[\033[00;37m\]"
+#     RED="\[\033[00;31m\]" #?
+#     PINK="\[\033[01;31m\]" #?
+#     BLACK="\[\033[00;30m\]"
+#     BLUE="\[\033[01;34m\]"
+#     DARKBLUE="\[\033[00;34m\]"
+#     WHITE="\[\033[01;38m\]"
+#     RESET="\[\033[m\]"
+
+    NAMECOLOR=$LIGHTGREY
+    HICOLOR=$WHITE
+    
+    if (( $IN_NIX_SHELL )); then
+      NAMECOLOR=$PURPLE
+      HICOLOR=$MAGENTA
+      N="${HICOLOR}(${NAMECOLOR} $NIX_SHELL_PKGS ${HICOLOR})${NAMECOLOR}"
+    fi
+
+
+    PS1="${HICOLOR}-=oO( ${NAMECOLOR}${JOBS}${HICOLOR} )( $NAMECOLOR$TIME$HICOLOR )( $NAMECOLOR$GIT$HICOLOR )(${NAMECOLOR} \u@\h${HICOLOR} \W${HICOLOR} )( ${NAMECOLOR}$LAST_COMMAND ${HICOLOR}:${NAMECOLOR} ${EXITSTATUS}${HICOLOR} )${N}Oo=-\n"
+
+    ## flag if error
+    if (( $EXITSTATUS == 0 )); then
+        PS1="${PS1}${HICOLOR}\$ ${RESET}"
+    else
+        PS1="${PS1}${RED}\$ ${RESET}"
+    fi
+
+    PS2="${RED}| ${RESET}"
+}
+
+PROMPT_COMMAND="makeprompt; history -a"
