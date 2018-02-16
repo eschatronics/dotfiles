@@ -1,4 +1,5 @@
 
+# preexec hack borrowed from: https://github.com/rcaloras/bash-preexec
 function preexec () {
   # Check for nix-shell invocation, and grab package list
   if grep -q "nix-shell -p" <<< "$LAST_COMMAND"; then
