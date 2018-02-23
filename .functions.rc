@@ -136,3 +136,8 @@ function :: ()
   shift
   nohup $exe "$*" &
 }
+
+function quitemacs () 
+{
+  emacsclient -e "(save-buffers-kill-terminal)"
+}

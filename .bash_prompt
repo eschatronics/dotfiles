@@ -30,22 +30,23 @@ function makeprompt {
     NAMECOLOR=$LIGHTGREY
     HICOLOR=$WHITE
     
+    N=""
     if (( $IN_NIX_SHELL )); then
       NAMECOLOR=$PURPLE
       HICOLOR=$MAGENTA
-      N="${HICOLOR}(${NAMECOLOR} $NIX_SHELL_PKGS ${HICOLOR})${NAMECOLOR}"
+      N="\[${HICOLOR}\](\[${NAMECOLOR}\] $NIX_SHELL_PKGS \[${HICOLOR}\])\[${NAMECOLOR}\]"
     fi
 
-    PS1="${HICOLOR}-=oO( ${NAMECOLOR}${JOBS}${HICOLOR} )( $NAMECOLOR$TIME$HICOLOR )( $NAMECOLOR$GIT$HICOLOR )(${NAMECOLOR} \u@\h${HICOLOR} \W${HICOLOR} )( ${NAMECOLOR}$LAST_COMMAND ${HICOLOR}:${NAMECOLOR} ${EXITSTATUS}${HICOLOR} )${N}Oo=-\n"
+    PS1="\[${HICOLOR}\]-=oO( \[${NAMECOLOR}\]${JOBS}\[${HICOLOR}\] )( $NAMECOLOR$TIME$HICOLOR )( $NAMECOLOR$GIT$HICOLOR )(\[${NAMECOLOR}\] \u@\h\[${HICOLOR}\] \W\[${HICOLOR}\] )( \[${NAMECOLOR}\]$LAST_COMMAND \[${HICOLOR}\]:\[${NAMECOLOR}\] ${EXITSTATUS}\[${HICOLOR}\] )${N}Oo=-\n"
 
     ## flag if error
     if (( $EXITSTATUS == 0 )); then
-        PS1="${PS1}${HICOLOR}\$ ${RESET}"
+        PS1="${PS1}\[${HICOLOR}\]\$ \[${RESET}\]"
     else
-        PS1="${PS1}${RED}\$ ${RESET}"
+        PS1="${PS1}\[${RED}\]\$ \[${RESET}\]"
     fi
 
-    PS2="${RED}| ${RESET}"
+    PS2="${RED}| \[${RESET}\]"
 }
 
 PROMPT_COMMAND="makeprompt; history -a"
