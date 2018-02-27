@@ -3,34 +3,52 @@ source ~/.colors.rc
 # preexec hack borrowed from: https://github.com/rcaloras/bash-preexec
 function preexec () {
   # Check for nix-shell invocation, and grab package list
+  LAST_COMMAND="$1"
   if grep -q "nix-shell -p" <<< "$LAST_COMMAND"; then
     export NIX_SHELL_PKGS=$( sed "s/nix-shell -p *//" <<< "$LAST_COMMAND" )
   fi
   L=40
-  if (( $(wc -c <<< $LAST_COMMAND) > $L )); then
-    export LAST_COMMAND=$(head -c $L <<< "$LAST_COMMAND" )
+  if (( $(wc -c <<< "$LAST_COMMAND" ) > $L )); then
+    LAST_COMMAND=$(head -c $L <<< "$LAST_COMMAND" )
   fi
+  export LAST_COMMAND
 }
 
 function preexec_invoke_exec () {
-  [ -n "$COMP_LINE" ] && return # do nothing if completing
-  [ "$BASH_COMMAND" = "$PROMPT_COMMAND" ] && return 
-  export LAST_COMMAND=$(history 1 | sed "s/ *[0-9]* *//")
-  preexec "$LAST_COMMAND"
+  # [ -n "$COMP_LINE" ] && return # do nothing if completing
+  # [ "$BASH_COMMAND" = "$PROMPT_COMMAND" ] && return 
+  # echo "-- $BASH_COMMAND"
+  # echo "-| $(history 1)"
+  preexec "$(history 1 | sed 's/^ *[0-9]* *//' )"
 }
 
 trap 'preexec_invoke_exec' DEBUG
+
+function absdir () {
+    python -c "import os.path; print(os.path.abspath(\"$1\"))"
+}
+
+function colorize () {
+    if [ -f "$1/.colors" ]; then
+        eval 'export NAMECOLOR=$'$(head -n1 $1/.colors)
+        eval 'export HICOLOR=$'$(tail -n1 $1/.colors)
+    elif [ $(absdir $1) = "/" ]; then
+        return
+    else
+        colorize "$1/.."
+    fi
+}
 
 function makeprompt {
     EXITSTATUS="$?"
     JOBS="$(jobs | grep -v Exit | wc -l )"
     TIME="$(date +%R)"
     GIT="$(git_branch)" # set prompt
-    
-    NAMECOLOR=$LIGHTGREY
-    HICOLOR=$WHITE
-    
+
+    colorize $PWD
+
     N=""
+
     if (( $IN_NIX_SHELL )); then
       NAMECOLOR=$PURPLE
       HICOLOR=$MAGENTA
@@ -47,6 +65,7 @@ function makeprompt {
     fi
 
     PS2="${RED}| \[${RESET}\]"
+    history -a
 }
 
-PROMPT_COMMAND="makeprompt; history -a"
+PROMPT_COMMAND="makeprompt"
